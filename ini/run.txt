@@ -1,0 +1,4 @@
+gcc -O2 -o kyber_demo sha.c kyber.c
+./kyber_demo
+
+gcc -O2 -o kyber2 sha2.c kyber3.c

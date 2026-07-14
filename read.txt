@@ -1,0 +1,3 @@
+gcc -O2 -o kyber_sim sha3.c kyber_sim.c
+./kyber_sim 0
+./kyber_sim 1
