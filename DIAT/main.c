@@ -1,23 +1,24 @@
-int main(void)
+static void kb_generate_bits(int mu, uint8_t *bitbuf, size_t nbits)
 {
-    kb_setup();
-    kb_init_mu_array();
+    if (!kb_ready) kb_setup();
+    if (nbits > KB_MAX_BITS) nbits = KB_MAX_BITS;
 
-    FILE *fp = fopen("stream.txt", "w");
-    if (!fp) { perror("fopen"); return 1; }
+    uint8_t noise_seed[KB_SEED_BYTES];
+    kb_get_random_bytes(noise_seed, KB_SEED_BYTES);
+    kb_polyvec e;
+    kb_polyvec_noise(noise_seed, 0, KB_ETA, &e);   /* internally uses shake256 */
 
-    for (kb_mu_index = 0; kb_mu_index < KB_MU_COUNT; kb_mu_index++) {
-        uint8_t seed_bits[KB_SEED_BITS];
-        kb_generate_bits(kb_mu_array[kb_mu_index], seed_bits, KB_SEED_BITS);
-        LFSR_seed(seed_bits, KB_SEED_BITS);   /* your team's real LFSR seed call */
-
-        g_total_bits_written = 0;
-        g_stop_now = 0;
-
-        LFSR_call(fp);
+    kb_polyvec c;
+    for (int i = 0; i < KB_K; i++) {
+        kb_poly withNoise;
+        kb_poly_add(&kb_As.v[i], &e.v[i], &withNoise);
+        for (int n = 0; n < KB_N; n++)
+            withNoise.c[n] = kb_mod_q(withNoise.c[n] + mu * KB_HALF_Q);
+        c.v[i] = withNoise;
     }
 
-    fclose(fp);
-    printf("done\n");
-    return 0;
+    size_t written = 0;
+    for (int i = 0; i < KB_K && written < nbits; i++)
+        for (int n = 0; n < KB_N && written < nbits; n++)
+            bitbuf[written++] = (uint8_t)(c.v[i].c[n] & 1);
 }
