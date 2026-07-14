@@ -1,28 +1,23 @@
 int main(void)
 {
-    kb_setup();          /* generates kb_A / kb_s once */
-    kb_init_mu_array();  /* fills the mu array with random 0/1 */
+    kb_setup();
+    kb_init_mu_array();
 
-    FILE *fp = fopen("prng_output.txt", "w");
+    FILE *fp = fopen("stream.txt", "w");
     if (!fp) { perror("fopen"); return 1; }
 
-    long total_bits_target = 1000000;  /* set to however many bits you need */
-    long bits_written = 0;
+    for (kb_mu_index = 0; kb_mu_index < KB_MU_COUNT; kb_mu_index++) {
+        uint8_t seed_bits[KB_SEED_BITS];
+        kb_generate_bits(kb_mu_array[kb_mu_index], seed_bits, KB_SEED_BITS);
+        LFSR_seed(seed_bits, KB_SEED_BITS);   /* your team's real LFSR seed call */
 
-    while (bits_written < total_bits_target) {
+        g_total_bits_written = 0;
+        g_stop_now = 0;
 
-        kb_maybe_reseed();          /* reseeds on the very first iteration,
-                                        then again every 2*KB_LFSR_N bits */
-
-        int bit = your_lfsr_step(); /* <-- replace with your team's real
-                                        LFSR step/clock function */
-        fputc(bit ? '1' : '0', fp);
-
-        bits_written++;
-        kb_bits_since_reseed++;
+        LFSR_call(fp);
     }
 
     fclose(fp);
-    printf("done: wrote %ld bits\n", bits_written);
+    printf("done\n");
     return 0;
 }
